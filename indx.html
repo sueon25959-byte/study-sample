@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>동물 같은 그림 찾기</title>
+<style>
+:root{--ink:#505765;--purple:#8178dc;--shadow:0 12px 28px rgba(75,82,110,.14)}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:"Pretendard","Noto Sans KR",system-ui,sans-serif;color:var(--ink)}
+body{min-height:100vh;background:
+radial-gradient(circle at 8% 10%,#ffe5ec 0 11%,transparent 12%),
+radial-gradient(circle at 92% 12%,#dff3ff 0 12%,transparent 13%),
+radial-gradient(circle at 15% 90%,#e6f6dc 0 14%,transparent 15%),
+linear-gradient(135deg,#fffaf0,#f5f0ff 55%,#effaff);
+display:flex;justify-content:center}
+.app{width:min(940px,100%);min-height:100vh;padding:18px;display:flex;flex-direction:column;gap:14px}
+header{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px}
+.title{font-weight:1000;font-size:clamp(21px,4vw,34px);display:flex;align-items:center;gap:10px}
+.logo{width:48px;height:48px;background:white;border-radius:16px;display:grid;place-items:center;box-shadow:var(--shadow)}
+.stats{display:flex;gap:8px}
+.pill{background:rgba(255,255,255,.9);padding:9px 16px;border-radius:17px;text-align:center;box-shadow:var(--shadow);font-weight:800;min-width:100px}
+.pill b{display:block;font-size:22px;color:#5f59bb}
+.actions{text-align:right}
+button{border:0;background:white;color:#626875;font-weight:900;border-radius:15px;padding:11px 15px;box-shadow:var(--shadow);cursor:pointer}
+button:hover{transform:translateY(-1px)}
+.guide{text-align:center;font-weight:800;background:rgba(255,255,255,.72);padding:10px;border-radius:18px}
+.board{flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:13px;align-content:center;perspective:1000px}
+.card{position:relative;aspect-ratio:1/1;cursor:pointer;transform-style:preserve-3d;transition:transform .42s;user-select:none;-webkit-tap-highlight-color:transparent}
+.card.flipped,.card.matched{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;border-radius:25px;display:grid;place-items:center;backface-visibility:hidden;box-shadow:var(--shadow);border:4px solid rgba(255,255,255,.78)}
+.front{background:linear-gradient(145deg,#bdb7f2,#8f87e5);font-size:clamp(35px,7vw,62px);color:white}
+.front::after{content:"?";font-weight:1000;text-shadow:0 3px 0 rgba(0,0,0,.06)}
+.back{transform:rotateY(180deg);background:rgba(255,255,255,.96);font-size:clamp(42px,8vw,74px)}
+.card.matched .back{background:#e7f8dd;animation:yay .5s ease}
+@keyframes yay{50%{transform:rotateY(180deg) scale(1.09)}}
+.overlay{position:fixed;inset:0;background:rgba(248,246,255,.72);backdrop-filter:blur(7px);display:grid;place-items:center;z-index:10}
+.panel{width:min(510px,88%);background:white;border-radius:30px;padding:30px;text-align:center;box-shadow:0 25px 60px rgba(80,85,115,.2)}
+.panel .hero{font-size:70px}.panel h1{font-size:clamp(28px,6vw,45px);color:#625bc3;margin:5px 0}
+.panel p{line-height:1.7;font-weight:650}.primary{background:#8178dc;color:white;font-size:18px;padding:14px 26px}
+#finish{display:none}.stars{font-size:34px;letter-spacing:4px}
+.toast{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%);font-size:35px;font-weight:1000;opacity:0;z-index:8;pointer-events:none;text-shadow:0 3px white}
+.toast.show{animation:pop .7s ease}
+@keyframes pop{0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}30%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}100%{opacity:0;transform:translate(-50%,-75%) scale(1)}}
+@media(max-width:620px){
+.app{padding:10px}.title span:last-child{display:none}
+header{grid-template-columns:auto 1fr auto}.pill{min-width:72px;padding:7px 9px;font-size:12px}.pill b{font-size:18px}
+.board{gap:8px}.face{border-radius:18px;border-width:3px}.actions button{padding:9px;font-size:12px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="title"><div class="logo">🐾</div><span>동물 같은 그림 찾기</span></div>
+  <div class="stats">
+    <div class="pill">👆 시도<b id="tries">0</b></div>
+    <div class="pill">💛 찾은 짝<b><span id="pairs">0</span> / 6</b></div>
+  </div>
+  <div class="actions"><button id="restart">↻ 다시하기</button></div>
+</header>
+<div class="guide">🐯 카드를 두 장씩 열어 <b>같은 동물 친구</b>를 찾아보세요!</div>
+<div class="board" id="board"></div>
+</div>
+
+<div class="overlay" id="start">
+ <div class="panel">
+   <div class="hero">🐶🐰</div>
+   <h1>같은 그림 찾기</h1>
+   <p>카드 속에는 귀여운 동물 친구들이 숨어 있어요.<br>
+   카드 두 장을 열어 <b>같은 동물</b>을 찾아보세요!</p>
+   <button class="primary" id="startBtn">게임 시작!</button>
+ </div>
+</div>
+
+<div class="overlay" id="finish">
+ <div class="panel">
+   <div class="hero">🎉</div>
+   <h1>모두 찾았어요!</h1>
+   <div class="stars">⭐ ⭐ ⭐</div>
+   <p>동물 친구 <b>6쌍</b>을 모두 찾았어요!<br>
+   총 <b id="finalTries">0번</b> 시도했어요.</p>
+   <button class="primary" id="again">한 번 더!</button>
+ </div>
+</div>
+<div class="toast" id="toast">짝꿍 발견! 💕</div>
+
+<script>
+(()=>{
+ const animals=['🐶','🐱','🐰','🐼','🦁','🐸'];
+ const board=document.getElementById('board');
+ const triesEl=document.getElementById('tries'),pairsEl=document.getElementById('pairs');
+ const start=document.getElementById('start'),finish=document.getElementById('finish');
+ const toast=document.getElementById('toast');
+ let first=null,second=null,lock=false,tries=0,pairs=0;
+
+ function shuffle(a){
+   for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}
+   return a;
+ }
+ function newGame(){
+   first=second=null;lock=false;tries=0;pairs=0;
+   triesEl.textContent=0;pairsEl.textContent=0;finish.style.display='none';board.innerHTML='';
+   shuffle([...animals,...animals]).forEach((animal,i)=>{
+     const c=document.createElement('div');
+     c.className='card';c.dataset.animal=animal;c.dataset.id=i;
+     c.innerHTML='<div class="face front"></div><div class="face back">'+animal+'</div>';
+     c.addEventListener('click',()=>flip(c));
+     board.appendChild(c);
+   });
+ }
+ function flip(card){
+   if(lock||card===first||card.classList.contains('matched'))return;
+   card.classList.add('flipped');
+   if(!first){first=card;return}
+   second=card;tries++;triesEl.textContent=tries;lock=true;
+   if(first.dataset.animal===second.dataset.animal){
+     setTimeout(()=>{
+       first.classList.add('matched');second.classList.add('matched');
+       first.classList.remove('flipped');second.classList.remove('flipped');
+       pairs++;pairsEl.textContent=pairs;showToast();
+       first=second=null;lock=false;
+       if(pairs===animals.length)setTimeout(done,650);
+     },420);
+   }else{
+     setTimeout(()=>{
+       first.classList.remove('flipped');second.classList.remove('flipped');
+       first=second=null;lock=false;
+     },850);
+   }
+ }
+ function showToast(){
+   toast.classList.remove('show');void toast.offsetWidth;toast.classList.add('show');
+ }
+ function done(){
+   document.getElementById('finalTries').textContent=tries+'번';
+   finish.style.display='grid';
+ }
+ document.getElementById('startBtn').onclick=()=>{start.style.display='none';newGame()};
+ document.getElementById('restart').onclick=newGame;
+ document.getElementById('again').onclick=newGame;
+ newGame();
+})();
+</script>
+</body>
+</html>
