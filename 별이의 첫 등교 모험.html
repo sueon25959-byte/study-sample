@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>별이의 첫 등교 모험</title>
+<style>
+:root{--bg:#dff3ff;--card:#fff;--text:#33291a;--sub:#6b5d45;--ac:#ff8a3d;--ok:#2fb36d;--line:#f0dfb8;--sky:#bfe6ff;--grass:#9ad96b;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17222e;--card:#263444;--text:#f4ecd8;--sub:#b9ad92;--ac:#ffa05c;--ok:#5cc98e;--line:#44546a;--sky:#2b4560;--grass:#3f6b3a}}
+:root[data-theme="dark"]{--bg:#17222e;--card:#263444;--text:#f4ecd8;--sub:#b9ad92;--ac:#ffa05c;--ok:#5cc98e;--line:#44546a;--sky:#2b4560;--grass:#3f6b3a}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"Jua","Apple SD Gothic Neo","Malgun Gothic",sans-serif;text-align:center;overflow-x:hidden}
+#app{max-width:560px;margin:0 auto;padding:12px}
+h1{font-size:30px;margin:6px 0}h2{font-size:22px;margin:4px 0}p{color:var(--sub);font-size:17px;margin:4px 0}
+.hud{display:flex;justify-content:space-between;font-size:24px;margin-bottom:6px}
+.btn{background:var(--ac);color:#fff;border:0;border-radius:999px;padding:14px 32px;font-size:22px;font-family:inherit;cursor:pointer;margin:10px 4px;box-shadow:0 5px 0 rgba(0,0,0,.18)}
+.btn:active{transform:translateY(3px);box-shadow:0 2px 0 rgba(0,0,0,.18)}
+.card{background:var(--card);border:3px solid var(--line);border-radius:20px;padding:14px;color:var(--text);font-family:inherit;font-size:21px;cursor:pointer}
+.map{display:flex;justify-content:space-between;align-items:flex-end;background:linear-gradient(var(--sky) 60%,var(--grass) 60%);border-radius:20px;padding:14px 8px 10px;margin:12px 0;min-height:130px}
+.node{flex:1;font-size:30px;opacity:.45;position:relative}.node small{display:block;font-size:12px;color:var(--text)}
+.node.done{opacity:1;filter:grayscale(.2)}.node.cur{opacity:1;transform:scale(1.25)}
+.hero{position:absolute;left:50%;top:-34px;transform:translateX(-50%);font-size:30px;animation:hop 0.7s infinite}
+@keyframes hop{50%{top:-46px}}
+.msg{min-height:30px;font-size:19px;margin:6px 0}
+.shake{animation:sh .35s}@keyframes sh{25%{transform:translateX(-9px)}75%{transform:translateX(9px)}}
+.sky{position:relative;height:360px;overflow:hidden;border-radius:20px;background:linear-gradient(var(--sky),var(--bg));border:3px solid var(--line);touch-action:manipulation}
+.fall{position:absolute;top:-70px;font-size:46px;background:none;border:0;padding:6px;cursor:pointer;animation:fall 3.4s linear forwards}
+@keyframes fall{to{top:340px}}
+.pop{animation:pop .3s forwards!important}@keyframes pop{to{transform:scale(2);opacity:0}}
+.bagbox{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);font-size:44px}
+.grid{display:grid;gap:10px;margin-top:10px}
+.mem{font-size:40px;height:84px;padding:0}.mem.up{background:var(--card)}.mem.dn{background:var(--ac);color:#fff}.mem.ok{opacity:.45;pointer-events:none}
+.paper{background:repeating-linear-gradient(var(--card),var(--card) 38px,var(--line) 39px);border:3px solid var(--line);border-radius:14px;min-height:80px;padding:6px 12px;font-size:28px;text-align:left;line-height:39px}
+.words{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:14px 0}
+.word{font-size:26px;padding:10px 18px;border-radius:14px;background:var(--card);border:3px solid var(--ac);color:var(--text);font-family:inherit;cursor:pointer}.word.used{opacity:.25;pointer-events:none}
+.step{display:block;width:100%;margin:8px 0;text-align:left}.step b{display:inline-block;width:34px;color:var(--ok)}.step.ok{border-color:var(--ok);pointer-events:none}
+.ox{font-size:64px;width:120px;height:120px;border-radius:50%;border:4px solid var(--line);background:var(--card);cursor:pointer;margin:8px}
+.q{font-size:26px;margin:14px 0;min-height:70px}
+.conf{position:fixed;top:-40px;font-size:30px;animation:cf 2.4s linear forwards;pointer-events:none}@keyframes cf{to{top:105vh;transform:rotate(360deg)}}
+.big{font-size:80px;animation:hop 0.8s infinite;position:relative}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const A=document.getElementById('app');
+const shuf=a=>a.slice().sort(()=>Math.random()-.5);
+const say=t=>{try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='ko-KR';u.rate=.85;speechSynthesis.speak(u)}catch(e){}};
+let ac;const tone=(f,d=.12,t=0)=>{try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=f;o.type='triangle';g.gain.value=.12;o.connect(g);g.connect(ac.destination);o.start(ac.currentTime+t);o.stop(ac.currentTime+t+d)}catch(e){}};
+const good=()=>{tone(660);tone(880,.12,.1)},bad=()=>{tone(200,.25)};
+const wob=e=>{e.classList.remove('shake');void e.offsetWidth;e.classList.add('shake')};
+const confetti=()=>{for(let i=0;i<24;i++){const s=document.createElement('span');s.className='conf';s.textContent=['⭐','🎉','✨','🌟'][i%4];s.style.left=Math.random()*95+'vw';s.style.animationDelay=Math.random()*.8+'s';document.body.appendChild(s);setTimeout(()=>s.remove(),3500)}};
+let clean=()=>{},st=0,h=3,stars=0;
+const scr=html=>{clean();clean=()=>{};A.innerHTML=html};
+const hud=()=>`<div class="hud"><span id="hd">${'❤️'.repeat(h)}${'🖤'.repeat(3-h)}</span><span>⭐ ${stars}</span></div>`;
+const ST=[{e:'🏠',n:'집',f:s1},{e:'🚪',n:'현관',f:s2},{e:'🏫',n:'교실',f:s3},{e:'🚸',n:'복도',f:s4},{e:'🗄️',n:'사물함',f:s5}];
+function map(){
+ scr(`<h1>🌟 별이의 첫 등교 모험</h1><p>별이가 학교에 도착할 수 있게 도와주세요!</p>
+ <div class="map">${ST.map((s,i)=>`<div class="node ${i<st?'done':''} ${i===st?'cur':''}">${i===st?'<span class="hero">🧒</span>':''}${s.e}<small>${s.n}</small></div>`).join('')}<div class="node">🎓<small>입학</small></div></div>
+ <h2>${st+1}번째 미션</h2><button class="btn" onclick="go()">▶ 출발!</button>`);
+}
+function go(){h=3;say('출발!');ST[st].f()}
+function hit(el){wob(el);bad();h--;const d=document.getElementById('hd');if(d)d.textContent='❤️'.repeat(Math.max(h,0))+'🖤'.repeat(3-Math.max(h,0));if(h<=0)setTimeout(fail,500)}
+function fail(){scr(`<div class="big">😢</div><h2>괜찮아요, 다시 해봐요!</h2><p>실수해도 괜찮아요. 별이가 응원해요!</p><button class="btn" onclick="go()">🔄 다시 도전</button>`)}
+function win(){stars+=3;good();tone(988,.3,.2);confetti();say('미션 성공!');st++;
+ scr(`<div class="big">🌟</div><h1>미션 성공!</h1><p>⭐⭐⭐ 별 3개를 얻었어요</p><button class="btn" onclick="${st>=ST.length?'cert()':'map()'}">${st>=ST.length?'🎓 학교 도착!':'다음으로 ▶'}</button>`)}
+function cert(){confetti();say('축하해요! 별이가 학교에 도착했어요!');
+ scr(`<div class="card" style="border-color:var(--ac);margin-top:16px"><div class="big">🎓</div><h1>입학 준비 증서</h1>
+ <p style="color:var(--text);font-size:20px">이름 <input placeholder="내 이름" style="font-size:22px;width:140px;text-align:center;border:0;border-bottom:3px solid var(--ac);background:transparent;color:var(--text);font-family:inherit"></p>
+ <p style="color:var(--text);font-size:20px">⭐ ${stars}개를 모은 씩씩한 1학년!<br>실내화도, 알림장도, 약속도 준비 완료 🎉</p></div>
+ <button class="btn" onclick="st=0;stars=0;map()">🔄 처음부터 또 하기</button>`)}
+
+/* 1 집: 아침 준비 순서 */
+function s1(){
+ const S=[['⏰','아침에 일어나요'],['🪥','세수하고 양치해요'],['🍚','아침밥을 먹어요'],['🎒','알림장 보고 가방을 챙겨요'],['🚸','인사하고 학교에 가요']];let n=0;
+ scr(`${hud()}<h2>🏠 아침 준비 순서</h2><p>먼저 할 일부터 차례대로 눌러요</p><div class="msg" id="m"></div>
+ ${shuf(S).map(s=>`<button class="card step" data-k="${s[1]}"><b></b>${s[0]} ${s[1]}</button>`).join('')}`);
+ A.querySelectorAll('.step').forEach(b=>b.onclick=()=>{
+  if(b.dataset.k===S[n][1]){n++;b.querySelector('b').textContent=n+'.';b.classList.add('ok');good();say(S[n-1][1]);if(n===5)setTimeout(win,900)}
+  else{hit(b);document.getElementById('m').textContent='🤔 다른 일을 먼저 해볼까?'}});
+}
+
+/* 2 현관: 떨어지는 물건 잡기 */
+function s2(){
+ const G=[['👟','실내화'],['📒','알림장'],['✏️','필통'],['📚','교과서'],['💧','물병'],['🧻','손수건']],X=[['🤖','로봇'],['🧸','인형'],['🍭','사탕'],['🎮','게임기']];let c=0,tm;
+ scr(`${hud()}<h2>🚪 가방 챙기기</h2><p>학교 물건만 톡! 눌러 가방에 넣어요 (<b id="c">0</b>/8)</p>
+ <div class="sky" id="sky"><div class="bagbox">🎒</div></div><div class="msg" id="m">장난감이나 간식은 누르면 안 돼요!</div>`);
+ const sky=document.getElementById('sky');
+ function spawn(){const g=Math.random()<.65,it=(g?G:X)[Math.floor(Math.random()*(g?G.length:X.length))];
+  const b=document.createElement('button');b.className='fall';b.textContent=it[0];b.style.left=(Math.random()*80+4)+'%';
+  b.onclick=()=>{if(b.classList.contains('pop'))return;b.classList.add('pop');setTimeout(()=>b.remove(),300);
+   if(g){c++;document.getElementById('c').textContent=c;good();say(it[1]);if(c>=8){clearInterval(tm);setTimeout(win,700)}}
+   else{hit(sky);document.getElementById('m').textContent='🙅 '+it[1]+'은(는) 학교에 가져가지 않아요'}};
+  b.onanimationend=()=>b.remove();sky.appendChild(b)}
+ tm=setInterval(spawn,850);spawn();clean=()=>clearInterval(tm);
+}
+
+/* 3 교실: 알림장 쓰기 */
+function s3(){
+ const R=[['내일','실내화','가져오기'],['준비물은','색연필','입니다'],['숙제는','그림','그리기']];let r=0;
+ const round=()=>{const a=R[r];let p=0;
+  scr(`${hud()}<h2>📒 알림장 쓰기 (${r+1}/3)</h2><p>선생님 말씀을 듣고 순서대로 눌러 써요</p>
+  <button class="btn" style="background:var(--sky);color:var(--text);padding:8px 20px;font-size:18px" onclick="say('${a.join(' ')}')">🔊 다시 듣기</button>
+  <div class="paper" id="p"></div><div class="words">${shuf(a).map(w=>`<button class="word">${w}</button>`).join('')}</div>`);
+  say(a.join(' '));
+  A.querySelectorAll('.word').forEach(b=>b.onclick=()=>{
+   if(b.textContent===a[p]){p++;b.classList.add('used');good();document.getElementById('p').textContent=a.slice(0,p).join(' ');
+    if(p===a.length){say(a.join(' '));setTimeout(()=>{r++;r<3?round():win()},900)}}
+   else hit(b)})};
+ round();
+}
+
+/* 4 복도: 교실 약속 O/X */
+function s4(){
+ const Q=[['수업 시간에 말하고 싶으면 손을 들어요',1,'손을 들고 기다려요'],['수업 시간에 교실을 마음대로 돌아다녀요',0,'자리에 앉아 있어요'],['화장실은 쉬는 시간에 미리 다녀와요',1,'쉬는 시간에 미리 가요'],['복도에서는 뛰어다녀도 괜찮아요',0,'복도에서는 걸어요'],['친구 물건은 허락받고 빌려요',1,'먼저 물어봐요'],['선생님이 부르시면 "네!" 하고 대답해요',1,'큰 소리로 대답해요']];let i=0;
+ const q=()=>{scr(`${hud()}<h2>🚸 교실 약속 (${i+1}/${Q.length})</h2><p>맞으면 ⭕, 틀리면 ❌</p>
+  <div class="q">${Q[i][0]}</div><button class="btn" style="background:var(--sky);color:var(--text);padding:8px 20px;font-size:18px" onclick="say('${Q[i][0]}')">🔊 읽어주기</button>
+  <div><button class="ox" data-a="1">⭕</button><button class="ox" data-a="0">❌</button></div><div class="msg" id="m"></div>`);
+  say(Q[i][0]);
+  A.querySelectorAll('.ox').forEach(b=>b.onclick=()=>{
+   if(+b.dataset.a===Q[i][1]){good();document.getElementById('m').textContent='👏 '+Q[i][2];say(Q[i][2]);setTimeout(()=>{i++;i<Q.length?q():win()},1300)}
+   else{hit(b);document.getElementById('m').textContent='🤔 다시 생각해볼까요?'}})};
+ q();
+}
+
+/* 5 사물함: 짝 맞추기 */
+function s5(){
+ const I=[['👟','실내화'],['🎒','가방'],['📒','알림장'],['✏️','필통'],['💧','물병'],['🧻','손수건']];let first=null,lock=false,m=0;
+ const cards=shuf([...I,...I]);
+ scr(`<h2>🗄️ 사물함 짝 맞추기</h2><p>같은 그림 두 개를 찾아요</p><div class="grid" style="grid-template-columns:repeat(4,1fr)">${cards.map((c,i)=>`<button class="card mem dn" data-i="${i}">❓</button>`).join('')}</div><div class="msg" id="m"></div>`);
+ A.querySelectorAll('.mem').forEach(b=>b.onclick=()=>{
+  if(lock||b===first||b.classList.contains('ok'))return;const c=cards[b.dataset.i];b.textContent=c[0];b.className='card mem up';tone(520,.08);
+  if(!first){first=b;return}
+  const f=first,fc=cards[f.dataset.i];first=null;
+  if(fc===c){f.classList.add('ok');b.classList.add('ok');good();say(c[1]);document.getElementById('m').textContent='👍 '+c[1];m++;if(m===6)setTimeout(win,900)}
+  else{lock=true;setTimeout(()=>{f.className=b.className='card mem dn';f.textContent=b.textContent='❓';lock=false},700)}});
+}
+map();
+</script>
+</body>
+</html>
